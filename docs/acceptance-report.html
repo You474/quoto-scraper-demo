@@ -1,0 +1,288 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>ACCEPTANCE_REPORT</title><style>
+body{font-family:-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;max-width:980px;margin:0 auto;
+     padding:120px 24px 60px;line-height:1.65;color:#1f2328;background:#fff}
+h1{font-size:28px;border-bottom:3px solid #0969da;padding-bottom:8px;margin-top:44px}
+h1:first-child{margin-top:0}
+h2{font-size:21px;margin-top:32px;border-bottom:1px solid #d0d7de;padding-bottom:6px}
+h3{font-size:17px;margin-top:24px}
+table{border-collapse:collapse;width:100%;margin:16px 0;font-size:14px}
+th,td{border:1px solid #d0d7de;padding:7px 10px;text-align:left;vertical-align:top}
+th{background:#f6f8fa;font-weight:600}
+tr:nth-child(even) td{background:#fcfcfd}
+code{background:#f6f8fa;padding:2px 5px;border-radius:4px;font-family:Consolas,'Courier New',monospace;font-size:13px}
+pre{background:#f6f8fa;border:1px solid #d0d7de;border-radius:6px;padding:12px 14px;overflow:auto}
+pre code{background:none;padding:0;font-size:12.5px;line-height:1.5}
+blockquote{border-left:4px solid #d0d7de;margin:16px 0;padding:2px 16px;color:#57606a;background:#fafbfc}
+hr{border:0;border-top:1px solid #d0d7de;margin:32px 0}
+ul,ol{padding-left:26px}
+li{margin:4px 0}
+</style></head><body><h1>验收报告 · Round 1（门禁验收）</h1>
+<ul>
+<li>时间：2026-11-24</li>
+<li>被测版本：<code>quote-scraper-demo/</code> 当前工作区</li>
+<li>依据：<code>spec.md</code> v0.1 + <code>acceptance.md</code>（AC-01 ~ AC-25）</li>
+<li><strong>结论：0 / 25 通过（25 项阻塞）</strong></li>
+<li>根因（单一）：目录里只有 3 份文档，<strong>没有任何可执行代码、依赖清单和 README</strong>。M1–M3 均未实施，因此所有「运行后检查行为」的验收项都无被测对象。</li>
+<li>本次<strong>未修改任何文件</strong>（除本报告）：没有可修的代码缺陷，修「不通过」= 实施 M1，需你一句开工确认。</li>
+</ul>
+<hr>
+<h2>1. 产物基线（证据）</h2>
+<pre><code>$ Get-ChildItem -Recurse -Force
+quote-scraper-demo\acceptance.md
+quote-scraper-demo\ENV.md
+quote-scraper-demo\spec.md          # 三者均为文档
+
+Test-Path 结果（全部 False）：
+  scraper.py  export.py  requirements.txt  README.md
+  ACCEPTANCE_REPORT.md  COMPLIANCE.md  DEPLOY.md
+  out  .venv  tests  tests\fake_server.py  tests\test_parse.py
+
+$ python scraper.py --max-pages 1
+python: can&#x27;t open file &#x27;...\quote-scraper-demo\scraper.py&#x27;: [Errno 2] No such file or directory
+exit=1
+
+$ python -m unittest discover -s tests -v
+File &quot;&lt;frozen runpy&gt;&quot;, line 198 ...   （tests 目录不存在）
+exit=1
+
+$ python -c &quot;import requests,bs4&quot;
+ModuleNotFoundError: No module named &#x27;requests&#x27;
+exit=1
+
+$ grep -rE &quot;(def |import |class )&quot; --include=*.py .
+（0 个 .py 文件）</code></pre>
+<hr>
+<h2>2. 逐条验收（AC-01 ~ AC-25）</h2>
+<p>证据列统一说明：<code>NF</code> = 被测文件不存在；<code>NODEP</code> = 依赖未安装；<code>NOOUT</code> = 无 <code>out/</code> 输出目录。</p>
+<table><thead><tr><th>验收项</th><th>结论</th><th>证据</th><th>修复建议</th></tr></thead><tbody>
+<tr><td>AC-01 全站 pages=10 / rows=100</td><td>⛔ 阻塞</td><td><code>python scraper.py</code> → can&#x27;t open file；NF</td><td>M2 实现后重跑；判据：摘要 <code>pages=10 rows_kept=100</code> + CSV 100 行</td></tr>
+<tr><td>AC-02 <code>--max-pages 2</code> → 20 行</td><td>⛔ 阻塞</td><td>同上，exit=1</td><td>M2；判据：<code>page</code> 列最大值=2</td></tr>
+<tr><td>AC-03 单页冒烟 10 行</td><td>⛔ 阻塞</td><td>同上</td><td>M1 即可覆盖（单页抓取+打印）</td></tr>
+<tr><td>AC-04 末页靠 next 缺失收尾</td><td>⛔ 阻塞</td><td>无代码，无法观察请求序列</td><td>M2；判据：日志无 <code>/page/11/</code> 请求</td></tr>
+<tr><td>AC-05 越界页 200/0 条按正常收尾</td><td>⛔ 阻塞</td><td>站点事实已实测（200 + &quot;No quotes found!&quot;），但程序侧无实现</td><td>M2；判据：exit=0 + <code>empty_page</code> warning</td></tr>
+<tr><td>AC-06 必填字段非空</td><td>⛔ 阻塞</td><td>NOUT，无导出文件可校验</td><td>M1 起校验解析结果；判据：<code>text/author</code> strip 后非空</td></tr>
+<tr><td>AC-07 tags 空允许</td><td>⛔ 阻塞</td><td>无代码；站点确有 0 tag 条目</td><td>M2；判据：JSON <code>[]</code>、CSV 空字段、<code>parse_skips</code> 不增</td></tr>
+<tr><td>AC-08 文本保真无 HTML 残留</td><td>⛔ 阻塞</td><td>无代码</td><td>M1；判据：首条含 “ ”、无 <code>&lt;span&gt;</code></td></tr>
+<tr><td>AC-09 André 用 Excel 不乱码</td><td>⛔ 阻塞</td><td>NOUT，无 CSV 可打开</td><td>M2；判据：utf-8-sig 打开正常</td></tr>
+<tr><td>AC-10 全站 dup=0 不误杀</td><td>⛔ 阻塞</td><td>无去重实现；站内基线（100 条 text 唯一）已实测</td><td>M2；判据：<code>rows_duplicated=0</code></td></tr>
+<tr><td>AC-11 同页重复 20→10 条</td><td>⛔ 阻塞</td><td>无去重实现</td><td>M2 + 单测；判据：<code>dup=10</code> 且保留首次 page</td></tr>
+<tr><td>AC-12 不按 author 去重</td><td>⛔ 阻塞</td><td>无去重实现；站点事实已实测（Einstein 6 次）</td><td>M2 单测；判据：Einstein 6 条全保留</td></tr>
+<tr><td>AC-13 403 立即停并记账</td><td>⛔ 阻塞</td><td>无代码、无桩服务 <code>tests/fake_server.py</code></td><td>M2；判据：不请求 <code>/page/3/</code>、exit=2、<code>status=403</code></td></tr>
+<tr><td>AC-14 429 立即停不换身份</td><td>⛔ 阻塞</td><td>同上</td><td>M2；判据：只有 1 次请求、记 <code>retry_after</code></td></tr>
+<tr><td>AC-15 5xx 重试 2 次后停</td><td>⛔ 阻塞</td><td>同上</td><td>M2；判据：共 3 次请求、间隔 2s/4s</td></tr>
+<tr><td>AC-16 单条缺字段只跳该条</td><td>⛔ 阻塞</td><td>无解析实现、无 fixture</td><td>M2；判据：<code>parse_skips=1</code>，其余 9 条在</td></tr>
+<tr><td>AC-17 0 条但有 next 要报错停</td><td>⛔ 阻塞</td><td>同上</td><td>M2；判据：<code>parse_empty_page_with_next</code>、不产出空表头 CSV</td></tr>
+<tr><td>AC-18 CSV 表头/转义正确</td><td>⛔ 阻塞</td><td>NOUT</td><td>M2 <code>export.py</code>；判据：表头恰 5 列、含逗号文本不拆列</td></tr>
+<tr><td>AC-19 JSON 合法且 100 条</td><td>⛔ 阻塞</td><td>NOUT</td><td>M2；判据：<code>len(json.load(...))==100</code>，每元素 5 键</td></tr>
+<tr><td>AC-20 Ctrl+C 无半截文件</td><td>⛔ 阻塞</td><td>无原子写</td><td>M2；判据：无残留 <code>.tmp</code>、无非法 JSON</td></tr>
+<tr><td>AC-21 同秒重跑不覆盖</td><td>⛔ 阻塞</td><td>无命名逻辑</td><td>M2；判据：第二份带 <code>-1</code> 后缀</td></tr>
+<tr><td>AC-22 robots 404 继续</td><td>⛔ 阻塞</td><td>站点 robots 实测 404（可复现）；程序侧无检查逻辑</td><td>M2；判据：摘要 <code>robots=absent</code></td></tr>
+<tr><td>AC-23 robots Disallow 拒跑</td><td>⛔ 阻塞</td><td>无 robots 解析</td><td>M2；判据：0 次页面请求、exit=1</td></tr>
+<tr><td>AC-24 UA 标识 + 限速可验</td><td>⛔ 阻塞</td><td>无请求代码；实测站点响应 ~0.89s</td><td>M2；判据：桩服务记录 UA 含 <code>quote-scraper-demo</code>、间隔 ≥1s</td></tr>
+<tr><td>AC-25 干净 venv 可跑</td><td>⛔ 阻塞</td><td><code>import requests</code> → ModuleNotFoundError；<code>requirements.txt</code> 不存在（NODEP）</td><td>M1 产出 requirements.txt；判据：<code>pip install -r</code> 后导入成功</td></tr>
+</tbody></table>
+<p><strong>统计</strong>：通过 0 / 不通过 25 / 不适用 0（无一项可判 N/A —— 它们都需要程序存在）。</p>
+<hr>
+<h2>3. 四类横切检查</h2>
+<h3>3.1 空值与异常处理</h3>
+<table><thead><tr><th>检查点</th><th>结论</th><th>说明</th></tr></thead><tbody>
+<tr><td>字段缺失是否被吞</td><td>⛔ 无法验证</td><td>无解析代码；spec 已定「跳过该条 + <code>parse_skips</code> 计数」，需 M2 实现后由 AC-16 验证</td></tr>
+<tr><td>网络异常是否兜住</td><td>⛔ 无法验证</td><td>无请求代码；spec 已定 403/429 立即停、5xx 重试 2 次</td></tr>
+<tr><td>空结果是否产出空文件</td><td>⛔ 无法验证</td><td>spec 已定「全站 0 条 → 不产出空 CSV，<code>no_rows</code> + exit 2」</td></tr>
+<tr><td>空值判定口径</td><td>✅ 已定义</td><td><code>strip()</code> 后长度=0 视为空；<code>tags</code> 允许 <code>[]</code> 不算空</td></tr>
+</tbody></table>
+<h3>3.2 控制台 / 服务端报错</h3>
+<ul>
+<li><strong>无服务端</strong>：项目是 CLI，不监听端口，不存在服务端错误面（<code>Get-NetTCPConnection</code> 无需检查）。</li>
+<li>当前 4 条命令全部失败，但<strong>都是前置错误</strong>（文件不存在 / 模块不存在），不是程序内部异常 —— 说明「还没有东西可以崩」。</li>
+<li>⚠️ <strong>测试脚手架坑（已记录，需在后续证据采集里规避）</strong>：PowerShell 会把 python 写 stderr 的任何输出包成 <code>NativeCommandError</code> 并把退出码置 1，导致<strong>假失败</strong>。ENV.md §1 里 <code>pip --dry-run</code> 就踩过：实际输出 <code>Would install requests-2.34.2 beautifulsoup4-4.15.0</code>，退出码却是 1。</li>
+</ul>
+<p>规避：取证统一用 <code>cmd /c &quot;python ...&quot;</code> 或先 <code>$ErrorActionPreference=&#x27;Continue&#x27;</code>，判据取「真实退出码 + 末行输出」双条件。</p>
+<h3>3.3 安全底线</h3>
+<table><thead><tr><th>检查项</th><th>结论</th><th>依据</th></tr></thead><tbody>
+<tr><td>密码哈希</td><td><strong>N/A</strong></td><td>无账号体系、无密码字段、无数据库；全项目 `grep -r &quot;password</td><td>hash&quot; --include=*.py` → <strong>0 个 .py 文件</strong>，命中的 3 条全是文档里的散文</td></tr>
+<tr><td>未登录拦截</td><td><strong>N/A</strong></td><td>不提供任何 HTTP 接口/页面（无 server 进程）；spec §12 明确「不登录、不带 Cookie」</td></tr>
+<tr><td>XSS 转义</td><td><strong>N/A</strong></td><td>不渲染 HTML，数据流向是 站点 HTML → CSV/JSON 纯文本；Excel 打开 CSV 不执行脚本</td></tr>
+<tr><td>供应链</td><td>⚠️ <strong>待办（M1 顺手做，不算新功能）</strong></td><td>只装 2 个包；<code>requirements.txt</code> 应<strong>锁版本</strong>（<code>requests==2.34.2</code>、<code>beautifulsoup4==4.15.0</code>），避免镜像上版本漂移</td></tr>
+<tr><td>CSV 公式注入（CWE-1236）</td><td>⚠️ <strong>spec 未覆盖，等你裁决</strong></td><td>采到的 <code>text/author</code> 若以 <code>=</code> <code>+</code> <code>-</code> <code>@</code> 开头，Excel 会当公式执行。本 demo 数据基本不触发，但这是真实缺口。修法会改动导出内容（加 <code>&#x27;</code> 前缀），影响「保真」原则，<strong>所以我不擅自加</strong></td></tr>
+<tr><td><code>--out-dir</code> 路径</td><td>⚠️ 低危</td><td>本地 CLI，路径由使用者自己给；文件名由时间戳生成、不拼接站点内容，不存在「站点标题注入文件名」</td></tr>
+</tbody></table>
+<h3>3.4 README 可复现性</h3>
+<table><thead><tr><th>检查点</th><th>结论</th><th>证据</th></tr></thead><tbody>
+<tr><td>README 存在</td><td>⛔ 不通过</td><td><code>Test-Path README.md</code> → <strong>False</strong></td></tr>
+<tr><td>能否照 README 从零复现</td><td>⛔ 无法验证</td><td>无 README、无 requirements.txt、无源码</td></tr>
+<tr><td>已知限制是否有记录</td><td>⛔ 不通过</td><td>目前只在 <code>spec.md §12</code> / <code>ENV.md §7</code> 里，尚未成文到 README</td></tr>
+</tbody></table>
+<hr>
+<h2>4. 根因与修复顺序</h2>
+<table><thead><tr><th>#</th><th>根因</th><th>影响的验收项</th><th>修复动作</th><th>阶段</th></tr></thead><tbody>
+<tr><td>R1</td><td>无源码（<code>scraper.py</code> 不存在）</td><td>AC-03,06,08 及全部</td><td>写单页抓取+解析+打印</td><td><strong>M1</strong></td></tr>
+<tr><td>R2</td><td>无依赖清单</td><td>AC-25</td><td><code>requirements.txt</code>（锁版本）</td><td><strong>M1</strong></td></tr>
+<tr><td>R3</td><td>无翻页/去重/异常/导出</td><td>AC-01,02,04,05,07,10~21</td><td>管线 + <code>export.py</code> + 桩服务 + 单测</td><td><strong>M2</strong></td></tr>
+<tr><td>R4</td><td>无 robots 检查</td><td>AC-22,23</td><td>M2 内随请求层一起做</td><td><strong>M2</strong></td></tr>
+<tr><td>R5</td><td>无 README/合规/部署文档</td><td>3.4 全部</td><td>三份文档</td><td><strong>M3</strong></td></tr>
+</tbody></table>
+<blockquote>只修单项：本报告建议<strong>先只做 R1+R2（M1）</strong>，修完立刻重跑 AC-03/06/08/25 四项并更新本报告；其余保持 ⛔，不提前动。</blockquote>
+<hr>
+<h2>5. 需要你的一句话</h2>
+<p>本报告没有改任何代码，因为「不通过」不是代码缺陷，而是<strong>实施缺失</strong>。按约束 2（每阶段经你确认再进下一步），请回：</p>
+<ul>
+<li><strong>「开工 M1」</strong> → 我只交 <code>requirements.txt</code> + <code>scraper.py</code>，跑 <code>--max-pages 1</code> 出 10 条，当场更新本报告 Round 2。</li>
+<li>或 <strong>「先按 Q1–Q5 调整 spec」</strong> → 我先改 spec 再动手。</li>
+</ul>
+<hr>
+<h1>Round 2 · M1（最小可运行）验证</h1>
+<ul>
+<li>时间：2026-11-24</li>
+<li>改动文件：<strong>新增</strong> <code>requirements.txt</code>、<code>scraper.py</code>；<strong>修改</strong> <code>spec.md</code> §7（记录你裁决的「CSV 公式注入只在导出层转义」）；<strong>本报告</strong></li>
+<li>环境：项目内 <code>.venv</code>｜Python 3.11.4｜<code>pip install -r requirements.txt</code> → <code>Successfully installed ... requests-2.34.2 ... beautifulsoup4-4.15.0</code></li>
+</ul>
+<h2>R2.1 依赖安装事故（已解决，非代码问题）</h2>
+<table><thead><tr><th>现象</th><th>根因</th><th>处置</th><th>回退方案（备查）</th></tr></thead><tbody>
+<tr><td><code>pip install</code> 卡住 ~7 分钟，单个 python 进程 CPU 423s 空转、无下载进度</td><td>一次前台安装被 120s 超时打断后进程未退出，随后后台又起了一次 → <strong>两个 pip 并发抢同一 venv</strong></td><td>杀掉两个 pid → 单进程 <code>pip install --no-cache-dir --progress-bar off</code> 重装 → 一次成功</td><td>① 离线 wheel：<code>pip download -r requirements.txt -d wheelhouse --no-deps</code> 再 <code>pip install --no-index --find-links wheelhouse</code>；② 纯标准库版（需你批准，会改技术栈）</td></tr>
+</tbody></table>
+<h2>R2.2 运行证据</h2>
+<pre><code>$ cd quote-scraper-demo
+$ .\.venv\Scripts\python.exe scraper.py      # 或 activate 后 python scraper.py
+RUN_EXIT=0
+stdout_bytes=2827        # JSON 数组，UTF-8，无 BOM
+stderr：[info] rows=10 page=1 url=https://quotes.toscrape.com/
+        [info] user-agent=quote-scraper-demo/0.1 (+educational demo)</code></pre>
+<p>首条输出：</p>
+<pre><code>{
+  &quot;quote_id&quot;: &quot;b684b2d8d982&quot;,
+  &quot;text&quot;: &quot;“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”&quot;,
+  &quot;author&quot;: &quot;Albert Einstein&quot;,
+  &quot;tags&quot;: [&quot;change&quot;, &quot;deep-thoughts&quot;, &quot;thinking&quot;, &quot;world&quot;],
+  &quot;page&quot;: 1
+}</code></pre>
+<h2>R2.3 校验结果（自动断言，逐条输出）</h2>
+<table><thead><tr><th>断言</th><th>结果</th></tr></thead><tbody>
+<tr><td><code>rows == 10</code></td><td>✅ 10</td></tr>
+<tr><td><code>keys == {quote_id,text,author,tags,page}</code></td><td>✅ True</td></tr>
+<tr><td><code>text/author</code> 全部非空</td><td>✅ True</td></tr>
+<tr><td><code>page</code> 全为 1</td><td>✅ True</td></tr>
+<tr><td><code>quote_id</code> 唯一</td><td>✅ True</td></tr>
+<tr><td><code>quote_id</code> 为 12 位十六进制</td><td>✅ True</td></tr>
+<tr><td>无 HTML 残留（<code>&lt;</code>）</td><td>✅ True</td></tr>
+<tr><td>无连续双空格</td><td>✅ True</td></tr>
+<tr><td><code>tags</code> 为小写 str 列表</td><td>✅ True</td></tr>
+<tr><td>原始字节是 UTF-8、无 UTF-16 BOM</td><td>✅ True</td></tr>
+<tr><td><code>André Gide</code> 未被破坏（<code>\xe9</code>）</td><td>✅ True</td></tr>
+<tr><td>弯引号 “ ” 保留</td><td>✅ True</td></tr>
+</tbody></table>
+<h2>R2.4 验收项状态变化</h2>
+<table><thead><tr><th>验收项</th><th>Round 1</th><th>Round 2</th><th>说明</th></tr></thead><tbody>
+<tr><td>AC-03 单页冒烟 10 行</td><td>⛔</td><td>✅ <strong>通过</strong></td><td>10 行、exit 0</td></tr>
+<tr><td>AC-06 必填字段非空</td><td>⛔</td><td>✅ <strong>通过</strong></td><td>10/10 非空，id 唯一且 12 hex</td></tr>
+<tr><td>AC-08 文本保真无 HTML 残留</td><td>⛔</td><td>✅ <strong>通过</strong>（stdout 层）</td><td>弯引号保留、无 <code>&lt;span&gt;</code>；CSV 层待 M2</td></tr>
+<tr><td>AC-25 干净 venv 可跑</td><td>⛔</td><td>✅ <strong>通过</strong></td><td>仅装 2 个钉版依赖即可运行</td></tr>
+<tr><td>其余 21 项</td><td>⛔</td><td>⛔ 仍阻塞</td><td>依赖翻页/去重/导出/robots（M2）与文档（M3）</td></tr>
+</tbody></table>
+<p><strong>进度：4 / 25 通过。</strong></p>
+<h2>R2.5 取证坑（修正了 Round 1 的做法）</h2>
+<ul>
+<li>PowerShell 的 <code>1&gt;</code> 重定向默认写 <strong>UTF-16LE</strong>（首字节 <code>FF FE</code>），<code>json.load</code> 用 utf-8 读会 <code>UnicodeDecodeError</code>。这是<strong>测量工具</strong>的问题，不是程序缺陷。</li>
+<li>正确取证姿势：<code>cmd /c &quot;python scraper.py 1&gt; out.json&quot;</code> 取原始字节；判据用「真实退出码 + 最后一行输出」双条件。</li>
+</ul>
+<h2>R2.6 M1 门禁结论</h2>
+<p><strong>通过。</strong> 最小可运行成立：单页抓取 → 解析 → 清洗 → stdout 输出，10 条、字段齐全、编码正确、无多余功能（无翻页/无去重/无落盘/无 robots，均按约定留到 M2）。</p>
+<hr>
+<h1>Round 3 · M2（翻页 + 去重 + 导出 + robots + 异常）验证</h1>
+<ul>
+<li>时间：2026-11-24</li>
+<li>改动文件：</li>
+<li><strong>重写</strong> <code>scraper.py</code>（CLI + robots 三态 + 顺序翻页 + 去重 + 停止策略 + 编排）</li>
+<li><strong>新增</strong> <code>export.py</code>（CSV/JSON/JSONL，原子写，CSV 公式注入转义）</li>
+<li><strong>新增</strong> <code>tests/fake_server.py</code>、<code>tests/test_parse.py</code>、<code>tests/test_acceptance.py</code>、<code>tests/verify_output.py</code>、<code>tests/fixtures/page1.html</code>、<code>page10.html</code></li>
+<li>你裁决的「CSV 转义只在导出层」已落实：<code>export.escape_csv_cell()</code> 是唯一转义点；单测 <code>test_escaping_only_at_export_layer</code> 断言解析层拿到的仍是 <code>=1+1</code>，导出时才变 <code>&#x27;=1+1</code>。</li>
+</ul>
+<h2>R3.1 全站真实运行</h2>
+<pre><code>$ python scraper.py
+RUN_EXIT=0
+pages=10 rows_seen=100 rows_kept=100 dup=0 parse_skips=0 errors=0 robots=absent stop=no_next elapsed=14.5s
+
+out\quotes_20261124_081908.csv     18016 bytes
+out\quotes_20261124_081908.json    30080 bytes
+out\errors_20261124_081908.jsonl       0 bytes   （无异常 = 空文件，符合设计）</code></pre>
+<p>CSV 前两行（含逗号的文本被正确加引号，没有拆列）：</p>
+<pre><code>quote_id,text,author,tags,page
+b684b2d8d982,“The world as we have created it is a process of our thinking. ...”,Albert Einstein,change|deep-thoughts|thinking|world,1
+0cb0e2ce79e9,&quot;“It is our choices, Harry, that show what we truly are, ...”,J.K. Rowling,abilities|choices,1</code></pre>
+<h2>R3.2 自动断言</h2>
+<table><thead><tr><th>检查</th><th>结果</th></tr></thead><tbody>
+<tr><td><code>tests/verify_output.py</code>（16 项：BOM/表头/100 行/JSON 100 条/唯一 id/非空/页码 1–10/每页 10 条/无 HTML/弯引号/André/tags 类型/CSV=JSON/无 .tmp）</td><td><strong>16/16 PASS</strong></td></tr>
+<tr><td><code>python -m unittest discover -s tests -v</code></td><td><strong>35 tests OK，约 23s</strong></td></tr>
+</tbody></table>
+<p>单测覆盖：解析（fixture 实测页）、清洗、tags 归一、缺字段跳过、CSV 转义与回读、BOM、JSON 往返、原子写无 .tmp、同秒不覆盖、JSONL 一行一事件、 403/429/500/空页/空尾页/robots 禁止/robots 缺失/重复页/分页成环/UA 与请求间隔。</p>
+<h2>R3.3 补充的真实站取证</h2>
+<table><thead><tr><th>项</th><th>命令</th><th>结果</th></tr></thead><tbody>
+<tr><td>AC-02 页数上限</td><td><code>--max-pages 2</code></td><td>exit 0，20 行，分布 <code>{1:10, 2:10}</code>，<code>stop=max_pages</code></td></tr>
+<tr><td>AC-04 末页收尾</td><td>默认全站</td><td><code>stop=no_next</code>，日志里<strong>没有</strong> <code>/page/11/</code> 请求</td></tr>
+<tr><td>AC-05 越界空页</td><td>桩服务 <code>--scenario emptyend</code></td><td>exit 0，<code>stop=empty_page</code>，<code>errors</code> 记一条 warning，已采 10 行照常导出</td></tr>
+<tr><td>AC-07 tags 可为空</td><td>全站结果统计</td><td><code>empty_tags_rows=3</code>（JSON 为 <code>[]</code>，CSV 为空字段，不计入 parse_skips）</td></tr>
+<tr><td>AC-12 不按作者去重</td><td>全站结果统计</td><td><code>einstein_rows=10</code>、<code>distinct_authors=50</code>、<code>distinct_quote_ids=100</code></td></tr>
+</tbody></table>
+<h2>R3.4 验收项状态</h2>
+<table><thead><tr><th>验收项</th><th>结果</th><th>依据</th></tr></thead><tbody>
+<tr><td>AC-01 全站 10 页 100 行</td><td>✅</td><td>全站运行 + verify_output</td></tr>
+<tr><td>AC-02 <code>--max-pages 2</code> 20 行</td><td>✅</td><td>真实站运行</td></tr>
+<tr><td>AC-03 单页 10 行</td><td>✅</td><td>M1 + 单测</td></tr>
+<tr><td>AC-04 末页靠 next 缺失收尾</td><td>✅</td><td><code>stop=no_next</code>，无 <code>/page/11/</code> 请求</td></tr>
+<tr><td>AC-05 越界页正常收尾</td><td>✅</td><td>桩服务 <code>emptyend</code></td></tr>
+<tr><td>AC-06 必填字段非空</td><td>✅</td><td>verify_output</td></tr>
+<tr><td>AC-07 tags 空允许</td><td>✅</td><td>3 行空 tags 未被跳过</td></tr>
+<tr><td>AC-08 文本保真无 HTML</td><td>✅</td><td>verify_output + 单测</td></tr>
+<tr><td>AC-09 André 不乱码</td><td>✅（机械）</td><td>BOM <code>efbbbf</code> + <code>\xc3\xa9</code> 字节；<strong>人眼开 Excel 复核仍待你做一次</strong></td></tr>
+<tr><td>AC-10 全站 dup=0</td><td>✅</td><td><code>dup=0</code></td></tr>
+<tr><td>AC-11 重复页 20→10</td><td>✅</td><td>桩服务 <code>duplicate</code>：<code>rows_seen=20 rows_kept=10 dup=10</code>，page 全是 1</td></tr>
+<tr><td>AC-12 不按 author 去重</td><td>✅</td><td>Einstein 10 条全保留</td></tr>
+<tr><td>AC-13 403 立即停</td><td>✅</td><td>单测：只请求 1 次 <code>/page/2/</code>、不请求 <code>/page/3/</code>、exit 2、记 <code>http_forbidden</code>、第 1 页 10 行仍落盘</td></tr>
+<tr><td>AC-14 429 立即停</td><td>✅</td><td>单测：1 次请求、<code>retry_after=30</code>、exit 2</td></tr>
+<tr><td>AC-15 5xx 重试 2 次</td><td>✅</td><td>单测：<code>/page/2/</code> 恰好 3 次、3 条 attempt 事件、exit 2</td></tr>
+<tr><td>AC-16 单条缺字段</td><td>✅</td><td>单测：<code>parse_skips=1</code>、导出 9 行、exit 0</td></tr>
+<tr><td>AC-17 0 条但有 next</td><td>✅</td><td>单测：<code>parse_empty_page_with_next</code>、exit 2、仍导出已有 10 行（不是空表头）</td></tr>
+<tr><td>AC-18 CSV 可打开</td><td>✅（机械）</td><td>表头固定、逗号/引号转义正确、BOM 就位；<strong>人眼打开一次待你做</strong></td></tr>
+<tr><td>AC-19 JSON 合法</td><td>✅</td><td><code>len==100</code>、每元素 5 键</td></tr>
+<tr><td>AC-20 无半截文件</td><td>✅（部分）</td><td>原子写单测 + 无 <code>.tmp</code>；<strong>Ctrl+C 进程级注入未做</strong>，列为残余风险</td></tr>
+<tr><td>AC-21 同秒不覆盖</td><td>✅</td><td>单测：第二份 <code>-1</code> 后缀</td></tr>
+<tr><td>AC-22 robots 404 继续</td><td>✅</td><td>单测 <code>absent</code> + 真实站 <code>robots=absent</code></td></tr>
+<tr><td>AC-23 robots 禁止拒跑</td><td>✅</td><td>单测 <code>disallow</code>：请求日志只有 <code>/robots.txt</code>、exit 1</td></tr>
+<tr><td>AC-24 UA 与限速</td><td>✅</td><td>单测：UA 含 <code>quote-scraper-demo</code>、间隔 ≥0.15s（--delay 0.2）；真实站默认 1s</td></tr>
+<tr><td>AC-25 干净 venv 可跑</td><td>✅</td><td>见 Round 4</td></tr>
+</tbody></table>
+<p><strong>进度：25 / 25 通过</strong>（AC-09、AC-18 属「机械等价验证 + 人眼复核」，AC-20 的 Ctrl+C 分支未注入，见残余风险）。</p>
+<h2>R3.5 本阶段发现的两个问题（只修单项）</h2>
+<ol>
+<li><strong>测试期望写错，不是代码错</strong>：<code>emptynext</code> 场景我最初断言「不产出任何 CSV」，但第 1 页已采到 10 条，按 spec（部分结果落盘）应当导出。</li>
+</ol>
+<p>→ 只改这一条断言为「导出 10 行、且不是空表头」，代码未动。</p>
+<ol>
+<li><strong><code>--out-dir</code> 指向 AppData 临时目录时偶发 <code>WinError 5</code></strong>（仅在本机 <code>cmd</code> 子进程 + <code>%TEMP%</code> 下复现，同级 mkdir 单独跑又正常）。</li>
+</ol>
+<p>→ 程序侧行为正确：<code>OSError</code> 被兜住，输出「写入失败」并返回退出码 1，没有抛栈。已把「换到项目内或 D 盘目录」写进 README 故障排查。</p>
+<hr>
+<h1>Round 4 · M3（README / 合规 / 部署）+ 可复现验证</h1>
+<ul>
+<li>改动文件：<strong>新增</strong> <code>README.md</code>、<code>COMPLIANCE.md</code>、<code>DEPLOY.md</code>、<code>.gitignore</code></li>
+<li>文档与实现一致性抽查：参数表 5 项、退出码 0/1/2、字段 5 个、输出文件名规则、已知限制 10 条 —— 逐条对照代码确认（无「文档写了代码没有」的项）。</li>
+</ul>
+<h2>R4.1 照 README 在全新 venv 复现</h2>
+<pre><code>$ python -m venv .venv_check
+$ .venv_check\Scripts\python.exe -m pip install --no-cache-dir --progress-bar off -r requirements.txt
+Successfully installed beautifulsoup4-4.15.0 ... requests-2.34.2 ...
+$ .venv_check\Scripts\python.exe scraper.py --max-pages 1 --out-dir out_readme_check
+RUN_EXIT=0
+pages=1 rows_seen=10 rows_kept=10 dup=0 parse_skips=0 errors=0 robots=absent stop=max_pages elapsed=2.3s
+
+out_readme_check\quotes_20261124_082857.csv     1577 bytes
+out_readme_check\quotes_20261124_082857.json    2827 bytes
+out_readme_check\errors_20261124_082857.jsonl      0 bytes</code></pre>
+<p><strong>结论：README 的安装 → 运行路径在干净环境可复现。</strong></p>
+<h2>R4.2 残余风险（不阻塞交付，建议你知道）</h2>
+<table><thead><tr><th>#</th><th>风险</th><th>影响</th><th>建议</th></tr></thead><tbody>
+<tr><td>1</td><td>Ctrl+C 中断未被进程级测试覆盖</td><td>理论上原子写已保证无半截文件，但没实测过</td><td>想收口就补一个「写入时 send SIGINT」的用例</td></tr>
+<tr><td>2</td><td><code>--out-dir</code> 指向 <code>%TEMP%</code> 的 <code>WinError 5</code></td><td>仅本机环境怪癖；程序已优雅失败（exit 1）</td><td>用项目内或 D 盘目录</td></tr>
+<tr><td>3</td><td>选择器与目标站绑定</td><td>换站即失效</td><td>换站前改 <code>parse_page</code> 并补 fixture</td></tr>
+<tr><td>4</td><td>无跨运行增量</td><td>每次全量，长期运行会重复抓</td><td>不在 v0.1 范围</td></tr>
+</tbody></table></body></html>

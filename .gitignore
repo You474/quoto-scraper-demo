@@ -1,0 +1,7 @@
+out/
+.venv/
+__pycache__/
+*.pyc
+*.tmp
+tests_out.txt
+dist/

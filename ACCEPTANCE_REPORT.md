@@ -365,5 +365,57 @@ CSV 前两行（含逗号的文本被正确加引号，没有拆列）：
 
 代码 / 文档 / 测试 / 验收报告 / 素材全部就绪；**唯一未完成的是「在 GitHub 上真正建出仓库」**，缺的是 Git 或你的账号凭据，不是代码。
 
+---
+
+# Round 6 · Git 初始化与 MIT 许可
+
+- 时间：2026-11-24
+- 改动文件：**新增** `LICENSE`（MIT）；**修改** `README.md`（§9 许可 + 文件结构）、`.gitignore`（排除 `dist/`）；**本报告**；重建 `dist/quote-scraper-demo.zip`
+
+## R6.1 安装 Git 的两条路（第一条失败）
+
+| 尝试 | 结果 |
+| --- | --- |
+| `winget install Git.Git` | ❌ 下载阶段失败：`InternetOpenUrl() failed 0x80072efd`（连不上 GitHub Releases），走的不是本地网络问题而是源被墙 |
+| 便携版 `PortableGit-2.56.1-64-bit.7z.exe`（npmmirror 镜像） | ✅ 57.3 MB / 53s 下载，解压到 `C:\Users\zxs20\AppData\Local\git-portable`，`git version 2.56.1.windows.1` |
+
+> 便携版不进系统 PATH、不写注册表，卸载就是删目录；后续若想全局使用，执行
+> `setx PATH "%PATH%;C:\Users\zxs20\AppData\Local\git-portable\cmd"` 或直接装官方安装包即可。
+
+## R6.2 仓库初始化与提交
+
+    $ git init -b main
+    $ git config --local user.name  "zxs20"
+    $ git config --local user.email "zxs20@users.noreply.github.com"
+    $ git config --local core.autocrlf false
+    $ git add -A
+    $ git commit -F <message file>
+    COMMIT_EXIT=0
+
+    $ git log --oneline --decorate
+    abb3f66 (HEAD -> main) Initial commit: 公开数据采集 demo（quote-scraper-demo）
+
+    $ git status --short        # 空 = 工作区干净
+    tracked files = 23
+
+入库清单（23 项）：`.gitignore` `LICENSE` `README.md` `COMPLIANCE.md` `DEPLOY.md` `PUBLISH.md` `ENV.md` `spec.md` `acceptance.md` `ACCEPTANCE_REPORT.md`
+`scraper.py` `export.py` `requirements.txt` `tests/*`(5) `tools/render_report.py` `docs/*`(3)
+**未入库**：`out/`（采集产物）、`.venv/`、`__pycache__/`、`dist/`（构建产物）。
+
+## R6.3 MIT 许可
+
+- `LICENSE` 全文为标准 MIT，版权行：`Copyright (c) 2026 zxs20`。
+- README §9 说明两条不覆盖的边界：采集到的**文本**版权归原作者/出版方；**站点条款**优先于本项目许可。
+- 版权署名若要改成真实姓名或别的 handle，只改 `LICENSE` 第 3 行一处即可。
+
+## R6.4 仍然缺的一步
+
+**推送到 GitHub 需要仓库地址 + 你的凭据**，我这边无法代做。拿到地址后：
+
+    $env:PATH += ";C:\Users\zxs20\AppData\Local\git-portable\cmd"
+    git remote add origin https://github.com/<你的账号>/quote-scraper-demo.git
+    git push -u origin main
+
+
 
 

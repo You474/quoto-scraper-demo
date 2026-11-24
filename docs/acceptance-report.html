@@ -285,4 +285,72 @@ out_readme_check\errors_20261124_082857.jsonl      0 bytes</code></pre>
 <tr><td>2</td><td><code>--out-dir</code> 指向 <code>%TEMP%</code> 的 <code>WinError 5</code></td><td>仅本机环境怪癖；程序已优雅失败（exit 1）</td><td>用项目内或 D 盘目录</td></tr>
 <tr><td>3</td><td>选择器与目标站绑定</td><td>换站即失效</td><td>换站前改 <code>parse_page</code> 并补 fixture</td></tr>
 <tr><td>4</td><td>无跨运行增量</td><td>每次全量，长期运行会重复抓</td><td>不在 v0.1 范围</td></tr>
-</tbody></table></body></html>
+</tbody></table>
+<hr>
+<h1>Round 5 · 交付打包与作品集素材</h1>
+<ul>
+<li>时间：2026-11-24</li>
+<li>改动文件：<strong>新增</strong> <code>PUBLISH.md</code>、<code>tools/render_report.py</code>、<code>dist/quote-scraper-demo.zip</code>、<code>docs/acceptance-report.html</code>、<code>docs/acceptance-report-top.png</code>、<code>docs/acceptance-report-full.png</code>、<code>.gitignore</code>；README 文件结构同步更新</li>
+</ul>
+<h2>R5.1 仓库内容已就绪</h2>
+<pre><code>dist/quote-scraper-demo.zip   55.6 KB / 19 项
+  scraper.py  export.py  requirements.txt  .gitignore
+  README.md  COMPLIANCE.md  DEPLOY.md  PUBLISH.md  spec.md  acceptance.md  ENV.md  ACCEPTANCE_REPORT.md
+  tests/{fake_server.py,test_parse.py,test_acceptance.py,verify_output.py,fixtures/}
+  tools/render_report.py</code></pre>
+<p><code>out/</code>、<code>.venv/</code>、<code>__pycache__/</code> 均未入包（见 <code>.gitignore</code>）。</p>
+<h2>R5.2 GitHub 建仓：<strong>受阻，待你选择</strong></h2>
+<table><thead><tr><th>检查</th><th>结果</th></tr></thead><tbody>
+<tr><td><code>where git</code></td><td>无结果（未安装）</td></tr>
+<tr><td>常见安装路径（Program Files / LocalAppData 等 5 处）</td><td>均不存在</td></tr>
+<tr><td><code>gh</code> CLI</td><td>未安装</td></tr>
+<tr><td><code>winget</code></td><td>可用（<code>C:\Users\zxs20\AppData\Local\Microsoft\WindowsApps\winget.exe</code>）</td></tr>
+</tbody></table>
+<p>我没有擅自安装 Git（那是系统级改动）。两条回退路径已写进 <code>PUBLISH.md</code>： <strong>A</strong> 网页上传 zip（零安装，最快）；<strong>B</strong> <code>winget install Git.Git</code> 后命令行推送（推远程仍需你的凭据）。</p>
+<h2>R5.3 截图素材</h2>
+<table><thead><tr><th>文件</th><th>内容</th><th>尺寸</th></tr></thead><tbody>
+<tr><td><code>docs/acceptance-report.html</code></td><td>自包含 HTML（12 张表、6 个代码块），可直接浏览器打开 / 打印 PDF</td><td>21 KB</td></tr>
+<tr><td><code>docs/acceptance-report-full.png</code></td><td>整份报告长截图（Round 1–4 全含）</td><td>1264 × 10762</td></tr>
+<tr><td><code>docs/acceptance-report-top.png</code></td><td>首屏截图（Round 1 封面）</td><td>1264 × 805</td></tr>
+</tbody></table>
+<p>截图由 agent 浏览器渲染本地 HTML 取得，非手工拼接。<strong>聊天界面截图仍需你自己截</strong>（我无法访问你的窗口）。</p>
+<h2>R5.4 本轮结论</h2>
+<p>代码 / 文档 / 测试 / 验收报告 / 素材全部就绪；<strong>唯一未完成的是「在 GitHub 上真正建出仓库」</strong>，缺的是 Git 或你的账号凭据，不是代码。</p>
+<hr>
+<h1>Round 6 · Git 初始化与 MIT 许可</h1>
+<ul>
+<li>时间：2026-11-24</li>
+<li>改动文件：<strong>新增</strong> <code>LICENSE</code>（MIT）；<strong>修改</strong> <code>README.md</code>（§9 许可 + 文件结构）、<code>.gitignore</code>（排除 <code>dist/</code>）；<strong>本报告</strong>；重建 <code>dist/quote-scraper-demo.zip</code></li>
+</ul>
+<h2>R6.1 安装 Git 的两条路（第一条失败）</h2>
+<table><thead><tr><th>尝试</th><th>结果</th></tr></thead><tbody>
+<tr><td><code>winget install Git.Git</code></td><td>❌ 下载阶段失败：<code>InternetOpenUrl() failed 0x80072efd</code>（连不上 GitHub Releases），走的不是本地网络问题而是源被墙</td></tr>
+<tr><td>便携版 <code>PortableGit-2.56.1-64-bit.7z.exe</code>（npmmirror 镜像）</td><td>✅ 57.3 MB / 53s 下载，解压到 <code>C:\Users\zxs20\AppData\Local\git-portable</code>，<code>git version 2.56.1.windows.1</code></td></tr>
+</tbody></table>
+<blockquote>便携版不进系统 PATH、不写注册表，卸载就是删目录；后续若想全局使用，执行 <code>setx PATH &quot;%PATH%;C:\Users\zxs20\AppData\Local\git-portable\cmd&quot;</code> 或直接装官方安装包即可。</blockquote>
+<h2>R6.2 仓库初始化与提交</h2>
+<pre><code>$ git init -b main
+$ git config --local user.name  &quot;zxs20&quot;
+$ git config --local user.email &quot;zxs20@users.noreply.github.com&quot;
+$ git config --local core.autocrlf false
+$ git add -A
+$ git commit -F &lt;message file&gt;
+COMMIT_EXIT=0
+
+$ git log --oneline --decorate
+abb3f66 (HEAD -&gt; main) Initial commit: 公开数据采集 demo（quote-scraper-demo）
+
+$ git status --short        # 空 = 工作区干净
+tracked files = 23</code></pre>
+<p>入库清单（23 项）：<code>.gitignore</code> <code>LICENSE</code> <code>README.md</code> <code>COMPLIANCE.md</code> <code>DEPLOY.md</code> <code>PUBLISH.md</code> <code>ENV.md</code> <code>spec.md</code> <code>acceptance.md</code> <code>ACCEPTANCE_REPORT.md</code> <code>scraper.py</code> <code>export.py</code> <code>requirements.txt</code> <code>tests/*</code>(5) <code>tools/render_report.py</code> <code>docs/*</code>(3) <strong>未入库</strong>：<code>out/</code>（采集产物）、<code>.venv/</code>、<code>__pycache__/</code>、<code>dist/</code>（构建产物）。</p>
+<h2>R6.3 MIT 许可</h2>
+<ul>
+<li><code>LICENSE</code> 全文为标准 MIT，版权行：<code>Copyright (c) 2026 zxs20</code>。</li>
+<li>README §9 说明两条不覆盖的边界：采集到的<strong>文本</strong>版权归原作者/出版方；<strong>站点条款</strong>优先于本项目许可。</li>
+<li>版权署名若要改成真实姓名或别的 handle，只改 <code>LICENSE</code> 第 3 行一处即可。</li>
+</ul>
+<h2>R6.4 仍然缺的一步</h2>
+<p><strong>推送到 GitHub 需要仓库地址 + 你的凭据</strong>，我这边无法代做。拿到地址后：</p>
+<pre><code>$env:PATH += &quot;;C:\Users\zxs20\AppData\Local\git-portable\cmd&quot;
+git remote add origin https://github.com/&lt;你的账号&gt;/quote-scraper-demo.git
+git push -u origin main</code></pre></body></html>

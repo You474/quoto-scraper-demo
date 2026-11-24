@@ -353,4 +353,50 @@ tracked files = 23</code></pre>
 <p><strong>推送到 GitHub 需要仓库地址 + 你的凭据</strong>，我这边无法代做。拿到地址后：</p>
 <pre><code>$env:PATH += &quot;;C:\Users\zxs20\AppData\Local\git-portable\cmd&quot;
 git remote add origin https://github.com/&lt;你的账号&gt;/quote-scraper-demo.git
-git push -u origin main</code></pre></body></html>
+git push -u origin main</code></pre>
+<hr>
+<h1>Round 7 · 推送上线（GitHub）</h1>
+<ul>
+<li>时间：2026-11-24</li>
+<li>仓库：https://github.com/You474/quoto-scraper-demo</li>
+<li>改动文件：<strong>新增</strong>远端 23 个文件的首次推送；<strong>修改</strong> <code>ACCEPTANCE_REPORT.md</code>（本节）</li>
+</ul>
+<h2>R7.1 两个环境发现（已解决）</h2>
+<table><thead><tr><th>问题</th><th>证据</th><th>处置</th></tr></thead><tbody>
+<tr><td>本机 hosts 把 <code>github.com</code> / <code>api.github.com</code> / <code>raw.githubusercontent.com</code> 等 30 个域名指向 <code>127.0.0.1</code>（某个 GitHub 加速/防护工具所为）</td><td><code>Resolve-DnsName github.com</code> → <code>127.0.0.1</code>；<code>Test-NetConnection github.com -Port 22</code> → False；<code>ssh</code> 报 <code>Connection refused</code></td><td>SSH 改走官方备用通道 <code>ssh.github.com:443</code>（<code>~/.ssh/config</code> 里 HostName/Port 两行），传输层恢复</td></tr>
+<tr><td>winget 安装 Git 时从 github.com 下载失败（<code>0x80072efd</code>）</td><td>同一 hosts 劫持导致</td><td>已用 npmmirror 的 PortableGit 2.56.1 解决（见 Round 6）</td></tr>
+</tbody></table>
+<blockquote>这个 hosts 条目仍然存在。它会让<strong>其他依赖 github.com 的工具</strong>（winget、部分 IDE 插件）继续失败。是否清理由你决定，清理前建议备份。</blockquote>
+<h2>R7.2 账号与仓库的实际情况</h2>
+<table><thead><tr><th>我原先的假设</th><th>实际</th><th>怎么发现的</th></tr></thead><tbody>
+<tr><td>GitHub 账号 <code>zxs20</code> / <code>ZXS2007</code></td><td><strong><code>You474</code></strong></td><td><code>ssh -T git@github.com</code> → <code>Hi You474! You&#x27;ve successfully authenticated</code></td></tr>
+<tr><td>仓库 <code>quote-scraper-demo</code></td><td><strong><code>quoto-scraper-demo</code></strong>（quote 打成 quoto）</td><td><code>GET /users/You474/repos</code> 列出的唯一仓库</td></tr>
+</tbody></table>
+<h2>R7.3 推送过程（保留你的提交，未强推）</h2>
+<pre><code># 远端只有你网页上传的 zip
+cc3f47d  You474 &lt;zxs20071017@qq.com&gt;  Add files via upload   (quote-scraper-demo.zip, 71225 B)
+
+# 把本地两条提交接到它之上，并把作者对齐账号
+git rebase origin/main --exec &quot;git commit --amend --no-edit --reset-author&quot;
+git rm quote-scraper-demo.zip &amp;&amp; git commit -m &quot;移除误传的 zip：源码已在仓库根目录，压缩包属冗余&quot;
+
+# fast-forward 推送（远端提交是本地祖先，无需 force）
+git push -u origin main
+cc3f47d..0e67ccb  main -&gt; main
+
+最终历史（线性，4 个提交）：
+0e67ccb  You474  移除误传的 zip
+b881297  You474  docs: 记录 Round 6（Git 初始化 + MIT 许可）并重渲染验收报告
+d6cb86d  You474  Initial commit: 公开数据采集 demo
+cc3f47d  You474  Add files via upload</code></pre>
+<h2>R7.4 核对结果</h2>
+<table><thead><tr><th>检查</th><th>结果</th></tr></thead><tbody>
+<tr><td><code>git rev-parse HEAD</code> vs <code>origin/main</code></td><td>一致（<code>0e67ccb</code>）</td></tr>
+<tr><td>远端文件数</td><td><strong>23</strong>（源码 2 + 测试 5 + 工具 1 + 文档 8 + docs 3 + 配置 3 + fixtures 2，无 zip）</td></tr>
+<tr><td>工作区</td><td>干净</td></tr>
+<tr><td>推送方式</td><td>fast-forward，<strong>未使用 --force</strong>，你的原提交保留</td></tr>
+</tbody></table>
+<h2>R7.5 待你决定</h2>
+<ul>
+<li><strong>仓库名拼写</strong>：<code>quoto-scraper-demo</code> → 建议在 Settings 改成 <code>quote-scraper-demo</code>。GitHub 会自动保留旧 URL 的 301 跳转，本地 remote 无需改动也能继续用；改完想让 remote 变干净就执行 <code>git remote set-url origin &lt;新地址&gt;</code>。</li>
+</ul></body></html>

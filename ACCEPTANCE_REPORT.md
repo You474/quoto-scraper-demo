@@ -416,6 +416,63 @@ CSV 前两行（含逗号的文本被正确加引号，没有拆列）：
     git remote add origin https://github.com/<你的账号>/quote-scraper-demo.git
     git push -u origin main
 
+---
+
+# Round 7 · 推送上线（GitHub）
+
+- 时间：2026-11-24
+- 仓库：https://github.com/You474/quoto-scraper-demo
+- 改动文件：**新增**远端 23 个文件的首次推送；**修改** `ACCEPTANCE_REPORT.md`（本节）
+
+## R7.1 两个环境发现（已解决）
+
+| 问题 | 证据 | 处置 |
+| --- | --- | --- |
+| 本机 hosts 把 `github.com` / `api.github.com` / `raw.githubusercontent.com` 等 30 个域名指向 `127.0.0.1`（某个 GitHub 加速/防护工具所为） | `Resolve-DnsName github.com` → `127.0.0.1`；`Test-NetConnection github.com -Port 22` → False；`ssh` 报 `Connection refused` | SSH 改走官方备用通道 `ssh.github.com:443`（`~/.ssh/config` 里 HostName/Port 两行），传输层恢复 |
+| winget 安装 Git 时从 github.com 下载失败（`0x80072efd`） | 同一 hosts 劫持导致 | 已用 npmmirror 的 PortableGit 2.56.1 解决（见 Round 6） |
+
+> 这个 hosts 条目仍然存在。它会让**其他依赖 github.com 的工具**（winget、部分 IDE 插件）继续失败。是否清理由你决定，清理前建议备份。
+
+## R7.2 账号与仓库的实际情况
+
+| 我原先的假设 | 实际 | 怎么发现的 |
+| --- | --- | --- |
+| GitHub 账号 `zxs20` / `ZXS2007` | **`You474`** | `ssh -T git@github.com` → `Hi You474! You've successfully authenticated` |
+| 仓库 `quote-scraper-demo` | **`quoto-scraper-demo`**（quote 打成 quoto） | `GET /users/You474/repos` 列出的唯一仓库 |
+
+## R7.3 推送过程（保留你的提交，未强推）
+
+    # 远端只有你网页上传的 zip
+    cc3f47d  You474 <zxs20071017@qq.com>  Add files via upload   (quote-scraper-demo.zip, 71225 B)
+
+    # 把本地两条提交接到它之上，并把作者对齐账号
+    git rebase origin/main --exec "git commit --amend --no-edit --reset-author"
+    git rm quote-scraper-demo.zip && git commit -m "移除误传的 zip：源码已在仓库根目录，压缩包属冗余"
+
+    # fast-forward 推送（远端提交是本地祖先，无需 force）
+    git push -u origin main
+    cc3f47d..0e67ccb  main -> main
+
+    最终历史（线性，4 个提交）：
+    0e67ccb  You474  移除误传的 zip
+    b881297  You474  docs: 记录 Round 6（Git 初始化 + MIT 许可）并重渲染验收报告
+    d6cb86d  You474  Initial commit: 公开数据采集 demo
+    cc3f47d  You474  Add files via upload
+
+## R7.4 核对结果
+
+| 检查 | 结果 |
+| --- | --- |
+| `git rev-parse HEAD` vs `origin/main` | 一致（`0e67ccb`） |
+| 远端文件数 | **23**（源码 2 + 测试 5 + 工具 1 + 文档 8 + docs 3 + 配置 3 + fixtures 2，无 zip） |
+| 工作区 | 干净 |
+| 推送方式 | fast-forward，**未使用 --force**，你的原提交保留 |
+
+## R7.5 待你决定
+
+- **仓库名拼写**：`quoto-scraper-demo` → 建议在 Settings 改成 `quote-scraper-demo`。GitHub 会自动保留旧 URL 的 301 跳转，本地 remote 无需改动也能继续用；改完想让 remote 变干净就执行 `git remote set-url origin <新地址>`。
+
+
 
 
 
